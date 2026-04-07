@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>QR張り紙作成</title>
+<title>製品入力</title>
 <style>
 :root {
   --blue:   #1565ff;
@@ -195,6 +195,51 @@ html, body { height: 100%; background: var(--bg); color: var(--text); }
   margin-bottom: 16px; outline: none;
 }
 
+/* 未登録入力欄 */
+.unreg-card {
+  display: none;
+  background: #fff8e8;
+  border: 2px solid #f59e0b;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.unreg-card.show { display: block; }
+.unreg-title {
+  font-size: 12px; font-weight: 800;
+  color: #b45309;
+  text-transform: uppercase; letter-spacing: .08em;
+  padding: 10px 16px;
+  background: #fef3c7;
+  border-bottom: 2px solid #f59e0b;
+}
+.unreg-row {
+  display: flex; align-items: center;
+  border-bottom: 2px solid #f59e0b; min-height: 64px;
+}
+.unreg-row:last-child { border-bottom: none; }
+.unreg-label {
+  width: 80px; flex-shrink: 0;
+  font-size: 12px; font-weight: 800; color: #b45309;
+  text-transform: uppercase; letter-spacing: .06em;
+  text-align: center; padding: 0 8px;
+  border-right: 2px solid #f59e0b;
+  align-self: stretch;
+  display: flex; align-items: center; justify-content: center;
+  background: #fef9ee;
+}
+.unreg-inp {
+  flex: 1; border: none; outline: none; background: transparent;
+  font-size: 24px; font-weight: 800; color: var(--text);
+  padding: 14px 16px; width: 100%;
+}
+.unreg-inp::placeholder { color: #d6b87a; font-size: 18px; font-weight: 400; }
+.unreg-sel {
+  flex: 1; border: none; outline: none; background: transparent;
+  font-size: 20px; font-weight: 700; color: var(--text);
+  padding: 14px 16px; width: 100%; cursor: pointer;
+}
+
 /* オーバーレイ */
 .ov {
   position: fixed; inset: 0; z-index: 400;
@@ -230,7 +275,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); }
 <body>
 <div id="app">
   <div class="hd">
-    <div class="hd-title">📦 製品情報入力</div>
+    <div class="hd-title">📦 製品入力</div>
     <div class="dot" id="dot"></div>
   </div>
 
@@ -244,6 +289,21 @@ html, body { height: 100%; background: var(--bg); color: var(--text); }
       <div class="divider"></div>
       <input id="pName" type="text" placeholder="品名" autocomplete="off" />
       <div class="prod-iri" id="pIri"></div>
+    </div>
+
+    <!-- 未登録品 入目・カテゴリ入力 -->
+    <div class="unreg-card" id="unregCard">
+      <div class="unreg-title">⚠️ 未登録品 — 入目とカテゴリを入力してください</div>
+      <div class="unreg-row">
+        <div class="unreg-label">入目</div>
+        <input class="unreg-inp" id="unregIri" type="number" placeholder="例: 10" min="1" />
+      </div>
+      <div class="unreg-row">
+        <div class="unreg-label">容器</div>
+        <select class="unreg-sel" id="unregCat">
+          <option value="">選択してください</option>
+        </select>
+      </div>
     </div>
 
     <div class="lbl">LOT / 枝番 / 個数</div>
@@ -332,6 +392,7 @@ const API = 'https://script.google.com/macros/s/AKfycbxFxx_u_dAALeP2MDY19NvfVxPI
 
 let master = [];
 let tokens = [];
+let categories = [];
 let copies = 1;
 
 window.addEventListener('DOMContentLoaded', function() {
@@ -346,6 +407,7 @@ async function loadMaster() {
     if (!json.ok) throw new Error(json.error);
     master = json.data || [];
     tokens = json.tokens || [];
+    categories = json.categories || [];
     document.getElementById('dot').classList.add('ok');
     document.getElementById('printBtn').disabled = false;
     document.getElementById('zaicoBtn').disabled = false;
@@ -359,13 +421,25 @@ async function loadMaster() {
 function onCode(v) {
   var n = document.getElementById('pName');
   var r = document.getElementById('pIri');
-  if (!v.trim()) { n.value = ''; n.style.color = ''; r.textContent = ''; return; }
+  var unregCard = document.getElementById('unregCard');
+  var unregCat  = document.getElementById('unregCat');
+
+  if (!v.trim()) {
+    n.value = ''; n.style.color = ''; r.textContent = '';
+    unregCard.classList.remove('show');
+    return;
+  }
   var row = master.find(function(x) { return (x[0]||'').toString().trim() === v.trim(); });
   if (!row) {
     n.value = '未登録'; n.style.color = 'var(--red)'; r.textContent = '';
+    // カテゴリプルダウンを設定
+    unregCat.innerHTML = '<option value="">選択してください</option>' +
+      categories.map(function(c) { return '<option value="' + c + '">' + c + '</option>'; }).join('');
+    unregCard.classList.add('show');
   } else {
     n.value = row[1] || ''; n.style.color = 'var(--blue)';
     r.textContent = row[2] ? '入目: ' + row[2] : '';
+    unregCard.classList.remove('show');
   }
 }
 
@@ -392,6 +466,9 @@ function doClear() {
   document.getElementById('pName').value       = '';
   document.getElementById('pName').style.color = '';
   document.getElementById('pIri').textContent  = '';
+  document.getElementById('unregCard').classList.remove('show');
+  document.getElementById('unregIri').value = '';
+  document.getElementById('unregCat').value = '';
   copies = 1;
   document.getElementById('cntVal').value = 1;
   toast('クリアしました', '');
@@ -450,8 +527,8 @@ async function doZaico() {
   var lot     = document.getElementById('lotInput').value.trim();
   var name    = document.getElementById('pName').value.trim() || code;
   var mRow    = master.find(function(x) { return (x[0]||'').toString().trim() === code; });
-  var iri     = mRow ? (mRow[2] || '') : '';
-  var cat     = mRow ? (mRow[4] || '') : '';
+  var iri     = mRow ? (mRow[2] || '') : document.getElementById('unregIri').value.trim();
+  var cat     = mRow ? (mRow[4] || '') : document.getElementById('unregCat').value;
   var qrCode  = code + '"' + lot;
   var payload = {zaicoToken: token, code: code, name: name, lot: lot, iri: iri, cat: cat, qrCode: qrCode};
   showOv('ZAICOに登録中...');
