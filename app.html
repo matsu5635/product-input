@@ -325,6 +325,20 @@ html, body { height: 100%; background: var(--bg); color: var(--text); }
     </div>
   </div>
 
+  <!-- 保管場所選択 -->
+  <div class="section" style="padding: 0 0 12px;">
+    <div class="lbl" style="padding-left:0; margin-bottom:6px;">保管場所（任意）</div>
+    <select id="placeSelect" style="
+      width:100%; padding:14px 16px;
+      font-size:18px; font-weight:700;
+      border:2px solid var(--border); border-radius:16px;
+      background:var(--card); color:var(--text);
+      outline:none; cursor:pointer;
+    ">
+      <option value="">選択しない</option>
+    </select>
+  </div>
+
   <div class="pbar">
     <button class="clr-btn" onclick="confirmClear()">🗑</button>
     <div class="cnt">
@@ -393,6 +407,7 @@ const API = 'https://script.google.com/macros/s/AKfycbxFxx_u_dAALeP2MDY19NvfVxPI
 let master = [];
 let tokens = [];
 let categories = [];
+let places = [];
 let copies = 1;
 
 window.addEventListener('DOMContentLoaded', function() {
@@ -408,6 +423,11 @@ async function loadMaster() {
     master = json.data || [];
     tokens = json.tokens || [];
     categories = json.categories || [];
+    places = json.places || [];
+    // 保管場所プルダウンをセット
+    var placeEl = document.getElementById('placeSelect');
+    placeEl.innerHTML = '<option value="">選択しない</option>' +
+      places.map(function(p) { return '<option value="' + p + '">' + p + '</option>'; }).join('');
     document.getElementById('dot').classList.add('ok');
     document.getElementById('printBtn').disabled = false;
     document.getElementById('zaicoBtn').disabled = false;
@@ -466,6 +486,7 @@ function doClear() {
   document.getElementById('pName').value       = '';
   document.getElementById('pName').style.color = '';
   document.getElementById('pIri').textContent  = '';
+  document.getElementById('placeSelect').value = '';
   document.getElementById('unregCard').classList.remove('show');
   document.getElementById('unregIri').value = '';
   document.getElementById('unregCat').value = '';
@@ -530,7 +551,8 @@ async function doZaico() {
   var iri     = mRow ? (mRow[2] || '') : document.getElementById('unregIri').value.trim();
   var cat     = mRow ? (mRow[4] || '') : document.getElementById('unregCat').value;
   var qrCode  = code + '"' + lot;
-  var payload = {zaicoToken: token, code: code, name: name, lot: lot, iri: iri, cat: cat, qrCode: qrCode};
+  var place   = document.getElementById('placeSelect').value;
+  var payload = {zaicoToken: token, code: code, name: name, lot: lot, iri: iri, cat: cat, qrCode: qrCode, place: place};
   showOv('ZAICOに登録中...');
   try {
     var url  = API + '?action=zaico&d=' + encodeURIComponent(JSON.stringify(payload));
