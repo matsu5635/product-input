@@ -372,7 +372,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); }
   <!-- タブバー -->
   <div class="tab-bar">
     <button class="tab-btn active" onclick="switchTab(1)">✏️ 入力・印刷</button>
-    <button class="tab-btn" onclick="switchTab(2)">🔍 在庫編集</button>
+    <button class="tab-btn" onclick="switchTab(2)">🔍 在庫確認</button>
   </div>
 
   <!-- ── タブ1: 入力・印刷 ── -->
@@ -522,7 +522,8 @@ html, body { height: 100%; background: var(--bg); color: var(--text); }
     <div style="display:flex;flex-direction:column;gap:10px;">
       <button class="printer-btn" onclick="selectPrinter('北1階')">🏭 北１階</button>
       <button class="printer-btn" onclick="selectPrinter('北2階')">🏭 北２階</button>
-      <button class="printer-btn" onclick="selectPrinter('南詰所')">🏭 南詰所_まだ設定してません</button>
+      <button class="printer-btn" onclick="selectPrinter('南詰所')">🏭 南詰所</button>
+      <button class="printer-btn" onclick="selectPrinter('日カラ原料')">🏭 日カラ原料</button>
       <button class="dialog-btn cancel" onclick="closePrinter()" style="margin-top:4px;">キャンセル</button>
     </div>
   </div>
