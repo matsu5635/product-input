@@ -502,11 +502,24 @@ html, body { height: 100%; background: var(--bg); color: var(--text); }
         <div class="lbl">数量を変更</div>
         <div class="input-card" style="margin-bottom:12px;">
           <div class="input-row">
-            <div class="input-label">数量</div>
+            <div class="input-label">変更数</div>
             <input class="big-inp" id="newQty" type="number" placeholder="0" min="0" />
           </div>
         </div>
-        <button class="update-btn" style="background:var(--blue);" onclick="updateQty()">📦 数量を更新する</button>
+        <div style="display:flex;gap:10px;margin-bottom:24px;">
+          <button onclick="updateQty('add')" style="
+            flex:1; padding:18px; border:none; border-radius:16px;
+            background:var(--green); color:#fff;
+            font-size:18px; font-weight:900; cursor:pointer;">
+            ➕ 入庫（足す）
+          </button>
+          <button onclick="updateQty('sub')" style="
+            flex:1; padding:18px; border:none; border-radius:16px;
+            background:var(--red); color:#fff;
+            font-size:18px; font-weight:900; cursor:pointer;">
+            ➖ 出庫（引く）
+          </button>
+        </div>
       </div>
 
     </div>
@@ -808,6 +821,7 @@ async function searchStock() {
     document.getElementById('sName').textContent  = r.title || '';
     document.getElementById('sLot').textContent   = lotAttr ? lotAttr.value : '';
     document.getElementById('sQty').textContent   = (r.quantity || 0) + ' 個';
+    document.getElementById('newQty').value = '';
     document.getElementById('sPlace').textContent = r.place || '（未設定）';
     document.getElementById('newQty').value = r.quantity || 0;
 
@@ -845,21 +859,28 @@ async function updatePlace() {
   hideOv();
 }
 
-async function updateQty() {
+async function updateQty(type) {
   var token  = document.getElementById('stockWorker').value;
-  var newQty = document.getElementById('newQty').value;
-  if (!token)              { toast('担当者を選択してください', 'err'); return; }
-  if (newQty === '')       { toast('数量を入力してください', 'err'); return; }
-  if (!stockInventoryId)   { toast('在庫IDが不明です', 'err'); return; }
+  var chg    = parseFloat(document.getElementById('newQty').value);
+  if (!token)            { toast('担当者を選択してください', 'err'); return; }
+  if (isNaN(chg) || chg <= 0) { toast('変更数を入力してください', 'err'); return; }
+  if (!stockInventoryId) { toast('在庫IDが不明です', 'err'); return; }
+
+  // 現在の数量から計算
+  var currentQty = parseFloat(document.getElementById('sQty').textContent.replace(' 個','')) || 0;
+  var newQty     = type === 'add' ? currentQty + chg : currentQty - chg;
+  if (newQty < 0) { toast('数量がマイナスになります', 'err'); return; }
+
   showOv('数量を更新中...');
   try {
-    var payload = { zaicoToken: token, inventoryId: stockInventoryId, quantity: parseFloat(newQty) };
+    var payload = { zaicoToken: token, inventoryId: stockInventoryId, quantity: newQty };
     var url     = API + '?action=zaicoUpdateQty&d=' + encodeURIComponent(JSON.stringify(payload));
     var res     = await fetch(url);
     var json    = await res.json();
     if (!json.ok) throw new Error(json.error);
     document.getElementById('sQty').textContent = newQty + ' 個';
-    toast('✓ 数量を更新しました！', 'ok');
+    document.getElementById('newQty').value = '';
+    toast('✓ ' + (type === 'add' ? '入庫' : '出庫') + ' ' + chg + '個 → 残数: ' + newQty + '個', 'ok');
   } catch(e) {
     toast('エラー: ' + e.message, 'err');
   }
