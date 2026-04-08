@@ -498,6 +498,15 @@ html, body { height: 100%; background: var(--bg); color: var(--text); }
           <option value="">選択してください</option>
         </select>
         <button class="update-btn" onclick="updatePlace()">📍 保管場所を更新する</button>
+
+        <div class="lbl">数量を変更</div>
+        <div class="input-card" style="margin-bottom:12px;">
+          <div class="input-row">
+            <div class="input-label">数量</div>
+            <input class="big-inp" id="newQty" type="number" placeholder="0" min="0" />
+          </div>
+        </div>
+        <button class="update-btn" style="background:var(--blue);" onclick="updateQty()">📦 数量を更新する</button>
       </div>
 
     </div>
@@ -799,6 +808,7 @@ async function searchStock() {
     document.getElementById('sLot').textContent   = lotAttr ? lotAttr.value : '';
     document.getElementById('sQty').textContent   = (r.quantity || 0) + ' 個';
     document.getElementById('sPlace').textContent = r.place || '（未設定）';
+    document.getElementById('newQty').value = r.quantity || 0;
 
     var sel = document.getElementById('newPlaceSelect');
     sel.innerHTML = '<option value="">選択してください</option>' +
@@ -828,6 +838,27 @@ async function updatePlace() {
     if (!json.ok) throw new Error(json.error);
     document.getElementById('sPlace').textContent = newPlace;
     toast('✓ 保管場所を更新しました！', 'ok');
+  } catch(e) {
+    toast('エラー: ' + e.message, 'err');
+  }
+  hideOv();
+}
+
+async function updateQty() {
+  var token  = document.getElementById('stockWorker').value;
+  var newQty = document.getElementById('newQty').value;
+  if (!token)              { toast('担当者を選択してください', 'err'); return; }
+  if (newQty === '')       { toast('数量を入力してください', 'err'); return; }
+  if (!stockInventoryId)   { toast('在庫IDが不明です', 'err'); return; }
+  showOv('数量を更新中...');
+  try {
+    var payload = { zaicoToken: token, inventoryId: stockInventoryId, quantity: parseFloat(newQty) };
+    var url     = API + '?action=zaicoUpdateQty&d=' + encodeURIComponent(JSON.stringify(payload));
+    var res     = await fetch(url);
+    var json    = await res.json();
+    if (!json.ok) throw new Error(json.error);
+    document.getElementById('sQty').textContent = newQty + ' 個';
+    toast('✓ 数量を更新しました！', 'ok');
   } catch(e) {
     toast('エラー: ' + e.message, 'err');
   }
