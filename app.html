@@ -579,6 +579,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); }
 const API = 'https://script.google.com/macros/s/AKfycbxFxx_u_dAALeP2MDY19NvfVxPI4F6Xdx_RplXJndEqwFg0QSIFcGVsJ1cswtwKqfoc/exec';
 
 let master = [], tokens = [], categories = [], places = [];
+const DEFAULT_ZAICO_TOKEN = 'vC1DkSTJHWV2N7q5xqvo5sm2eTr2V64n'; // ZAICOチェック用デフォルトトークン
 let copies = 1;
 let stockInventoryId = '';
 let qrStream = null;
@@ -622,6 +623,10 @@ async function loadMaster() {
     // 既にコードが入力されていたら再検索
     var code = document.getElementById('codeInput').value.trim();
     if (code) onCode(code);
+
+    // マスター読み込み完了後にZAICOチェックを再実行
+    var lot = document.getElementById('lotInput').value.trim();
+    if (code && lot) checkZaicoExists();
 
   } catch(e) {
     document.getElementById('dot').classList.add('err');
@@ -680,13 +685,10 @@ function checkZaicoExists() {
   zaicoCheckTimer = setTimeout(async function() {
     var qrCode = code + '"' + lot;
 
-    // トークンがまだ読み込まれていない場合は待機して再試行
-    if (!tokens || tokens.length === 0) {
-      setTimeout(checkZaicoExists, 1000);
-      return;
-    }
+    // トークンがまだ読み込まれていない場合はスキップ（loadMaster完了後に再実行される）
+    if (!tokens || tokens.length === 0) return;
 
-    var token = tokens[0][1];
+    var token = DEFAULT_ZAICO_TOKEN;
     try {
       var url  = API + '?action=zaicoSearch&qr=' + encodeURIComponent(qrCode) + '&token=' + encodeURIComponent(token);
       var res  = await fetch(url);
