@@ -409,7 +409,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); }
         <div class="input-row">
           <div class="input-label">LOT</div>
           <input class="big-inp" id="lotInput" type="text" placeholder="Lot番号"
-            autocomplete="off" autocorrect="off" />
+            autocomplete="off" autocorrect="off" oninput="onLot(this.value)" />
         </div>
         <div class="input-row">
           <div class="input-label">枝番</div>
@@ -585,7 +585,7 @@ let qrStream = null;
 let qrScanning = false;
 
 window.addEventListener('DOMContentLoaded', function() {
-  loadMaster();
+  loadMaster(); // バックグラウンドで読み込み（UIはすぐ表示）
   // URLパラメータから製品コードを受け取る
   var params = new URLSearchParams(window.location.search);
   var code   = params.get('code');
@@ -596,7 +596,8 @@ window.addEventListener('DOMContentLoaded', function() {
 });
 
 async function loadMaster() {
-  showOv('マスターデータを読み込み中...');
+  // UIはすぐ表示、バックグラウンドで読み込み
+  document.getElementById('dot').style.background = '#f59e0b'; // 黄色（読込中）
   try {
     var res  = await fetch(API + '?action=master');
     var json = await res.json();
@@ -617,11 +618,15 @@ async function loadMaster() {
     document.getElementById('dot').classList.add('ok');
     document.getElementById('printBtn').disabled = false;
     document.getElementById('zaicoBtn').disabled = false;
+
+    // 既にコードが入力されていたら再検索
+    var code = document.getElementById('codeInput').value.trim();
+    if (code) onCode(code);
+
   } catch(e) {
     document.getElementById('dot').classList.add('err');
     toast('読み込みエラー: ' + e.message, 'err');
   }
-  hideOv();
 }
 
 /* ── タブ切替 ── */
@@ -655,6 +660,54 @@ function onCode(v) {
     n.value = row[1] || ''; n.style.color = 'var(--blue)';
     r.textContent = row[2] ? '入目: ' + row[2] : '';
     unregCard.classList.remove('show');
+  }
+}
+
+/* ── ZAICO重複チェック ── */
+var zaicoCheckTimer = null;
+function checkZaicoExists() {
+  clearTimeout(zaicoCheckTimer);
+  var code = document.getElementById('codeInput').value.trim();
+  var lot  = document.getElementById('lotInput').value.trim();
+
+  // 両方未入力ならボタンを通常に戻す
+  if (!code || !lot) {
+    setZaicoBtn(true);
+    return;
+  }
+
+  // 1秒後にチェック
+  zaicoCheckTimer = setTimeout(async function() {
+    var qrCode = code + '"' + lot;
+    // 最初のトークンで検索
+    if (!tokens || tokens.length === 0) return;
+    var token = tokens[0][1];
+    try {
+      var url  = API + '?action=zaicoSearch&qr=' + encodeURIComponent(qrCode) + '&token=' + encodeURIComponent(token);
+      var res  = await fetch(url);
+      var json = await res.json();
+      if (json.ok && json.result) {
+        // 既に登録済み → グレーアウト
+        setZaicoBtn(false);
+      } else {
+        setZaicoBtn(true);
+      }
+    } catch(e) {
+      setZaicoBtn(true);
+    }
+  }, 1000);
+}
+
+function setZaicoBtn(enabled) {
+  var btn = document.getElementById('zaicoBtn');
+  if (enabled) {
+    btn.disabled = false;
+    btn.style.opacity = '';
+    btn.title = '';
+  } else {
+    btn.disabled = true;
+    btn.style.opacity = '0.4';
+    btn.title = 'ZAICOに既に登録済みです';
   }
 }
 
