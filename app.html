@@ -438,7 +438,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); }
         <button class="cnt-btn" onclick="chg(1)">＋</button>
       </div>
       <button class="pbtn" id="printBtn" onclick="showPrinter()" disabled>🖨 印刷</button>
-      <button class="zbtn" id="zaicoBtn" onclick="showTokenDialog()" disabled>📦 ZAICO登録</button>
+      <button class="zbtn" id="zaicoBtn" onclick="showTokenDialog()" disabled title="読み込み中...">📦 ZAICO登録</button>
     </div>
   </div>
 
@@ -618,15 +618,19 @@ async function loadMaster() {
 
     document.getElementById('dot').classList.add('ok');
     document.getElementById('printBtn').disabled = false;
-    document.getElementById('zaicoBtn').disabled = false;
 
     // 既にコードが入力されていたら再検索
     var code = document.getElementById('codeInput').value.trim();
     if (code) onCode(code);
 
-    // マスター読み込み完了後にZAICOチェックを再実行
+    // マスター読み込み完了後にZAICOチェックを再実行（結果によってボタン制御）
     var lot = document.getElementById('lotInput').value.trim();
-    if (code && lot) checkZaicoExists();
+    if (code && lot) {
+      checkZaicoExists();
+    } else {
+      // コード・LOT未入力ならボタン有効化
+      document.getElementById('zaicoBtn').disabled = false;
+    }
 
   } catch(e) {
     document.getElementById('dot').classList.add('err');
@@ -685,9 +689,6 @@ function checkZaicoExists() {
   zaicoCheckTimer = setTimeout(async function() {
     var qrCode = code + '"' + lot;
 
-    // トークンがまだ読み込まれていない場合はスキップ（loadMaster完了後に再実行される）
-    if (!tokens || tokens.length === 0) return;
-
     var token = DEFAULT_ZAICO_TOKEN;
     try {
       var url  = API + '?action=zaicoSearch&qr=' + encodeURIComponent(qrCode) + '&token=' + encodeURIComponent(token);
@@ -709,7 +710,8 @@ function setZaicoBtn(enabled) {
   var btn = document.getElementById('zaicoBtn');
   if (enabled) {
     btn.disabled = false;
-    btn.style.opacity = '';
+    btn.style.opacity = '1';
+    btn.style.background = '';
     btn.title = '';
   } else {
     btn.disabled = true;
